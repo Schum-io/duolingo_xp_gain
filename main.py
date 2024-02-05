@@ -31,6 +31,7 @@ def _pause_between_lessons():
     pause_time = random.randint(*PAUSE_RANGE_BETWEEN_LESSONS_SEC)
     print(f"Pausing for {pause_time} seconds...")
     time.sleep(pause_time)
+    return pause_time
 
 
 def gain_xp():
@@ -53,68 +54,74 @@ def gain_xp():
     learning_language = user_info["learningLanguage"]
     xp_gains = iter(user_info["xpGains"])
     xp_gains_exists = []
+    pause_time = 60
 
     # Iterate through lessons
     for i in range(int(LESSONS_COUNT)):
         # Start a new session
-        skill_id = next(
-            xpGain for xpGain in xp_gains if xpGain.get("skillId") and xpGain.get("skillId") not in xp_gains_exists
-        )["skillId"]
-        session_response = requests.post(
-            "https://www.duolingo.com/2017-06-30/sessions",
-            headers=headers,
-            json={
-                "challengeTypes": [
-                    "assist",
-                    "characterIntro",
-                    "characterMatch",
-                    "characterPuzzle",
-                    "characterSelect",
-                    "characterTrace",
-                    "completeReverseTranslation",
-                    "definition",
-                    "dialogue",
-                    "form",
-                    "freeResponse",
-                    "gapFill",
-                    "judge",
-                    "listen",
-                    "listenComplete",
-                    "listenMatch",
-                    "match",
-                    "name",
-                    "listenComprehension",
-                    "listenIsolation",
-                    "listenTap",
-                    "partialListen",
-                    "partialReverseTranslate",
-                    "readComprehension",
-                    "select",
-                    "selectPronunciation",
-                    "selectTranscription",
-                    "syllableTap",
-                    "syllableListenTap",
-                    "speak",
-                    "tapCloze",
-                    "tapClozeTable",
-                    "tapComplete",
-                    "tapCompleteTable",
-                    "tapDescribe",
-                    "translate",
-                    "typeCloze",
-                    "typeClozeTable",
-                    "typeCompleteTable",
-                ],
-                "fromLanguage": from_language,
-                "isFinalLevel": False,
-                "isV2": True,
-                "juicy": True,
-                "learningLanguage": learning_language,
-                "skillId": skill_id,
-                "smartTipsVersion": 2,
-                "type": "SPEAKING_PRACTICE",
-            },
-        ).json()
+        try:
+            skill_id = next(
+                xpGain for xpGain in xp_gains if xpGain.get("skillId") and xpGain.get("skillId") not in xp_gains_exists
+            )["skillId"]
+
+            session_response = requests.post(
+                "https://www.duolingo.com/2017-06-30/sessions",
+                headers=headers,
+                json={
+                    "challengeTypes": [
+                        "assist",
+                        "characterIntro",
+                        "characterMatch",
+                        "characterPuzzle",
+                        "characterSelect",
+                        "characterTrace",
+                        "completeReverseTranslation",
+                        "definition",
+                        "dialogue",
+                        "form",
+                        "freeResponse",
+                        "gapFill",
+                        "judge",
+                        "listen",
+                        "listenComplete",
+                        "listenMatch",
+                        "match",
+                        "name",
+                        "listenComprehension",
+                        "listenIsolation",
+                        "listenTap",
+                        "partialListen",
+                        "partialReverseTranslate",
+                        "readComprehension",
+                        "select",
+                        "selectPronunciation",
+                        "selectTranscription",
+                        "syllableTap",
+                        "syllableListenTap",
+                        "speak",
+                        "tapCloze",
+                        "tapClozeTable",
+                        "tapComplete",
+                        "tapCompleteTable",
+                        "tapDescribe",
+                        "translate",
+                        "typeCloze",
+                        "typeClozeTable",
+                        "typeCompleteTable",
+                    ],
+                    "fromLanguage": from_language,
+                    "isFinalLevel": False,
+                    "isV2": True,
+                    "juicy": True,
+                    "learningLanguage": learning_language,
+                    "skillId": skill_id,
+                    "smartTipsVersion": 2,
+                    "type": "SPEAKING_PRACTICE",
+                },
+            ).json()
+        except Exception as e:
+            print(e)
+            continue
 
         # Update the session
         current_time = datetime.now()
@@ -124,7 +131,7 @@ def gain_xp():
             json={
                 **session_response,
                 "heartsLeft": 0,
-                "startTime": (current_time.timestamp() - 60),
+                "startTime": (current_time.timestamp() - (pause_time - 2)),
                 "enableBonusPoints": False,
                 "endTime": current_time.timestamp(),
                 "failed": False,
@@ -134,9 +141,9 @@ def gain_xp():
         ).json()
 
         # Print the xp gain
-        print(f'xp: {update_response["xpGain"]} for skill_id: {skill_id}')
+        print(f'xp: {update_response["xpGain"]} for skill_id: {skill_id}. iteration: {i + 1} of {LESSONS_COUNT}')
         xp_gains_exists.append(skill_id)
-        _pause_between_lessons()
+        pause_time = _pause_between_lessons()
 
 
 if __name__ == "__main__":
